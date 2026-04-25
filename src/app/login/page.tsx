@@ -76,7 +76,7 @@ function LoginPageContent() {
             {logoAvailable ? (
               <img
                 className="login-logo"
-                src="/team-logo.png"
+                src="/icon.svg"
                 alt="Digital Pioneer Team Logo"
                 onError={() => setLogoAvailable(false)}
               />
