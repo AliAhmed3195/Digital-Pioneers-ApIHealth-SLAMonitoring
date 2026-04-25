@@ -196,7 +196,7 @@ export function AppShell({ children }: AppShellProps) {
               onChange={(event) => setSearch(event.target.value)}
             />
             <Link className="btn btn-primary" href="/ai-reports">
-              Generate Report
+              AI Reports
             </Link>
             <button className="btn button-with-icon" onClick={() => void logout()}>
               <LogOut size={14} />

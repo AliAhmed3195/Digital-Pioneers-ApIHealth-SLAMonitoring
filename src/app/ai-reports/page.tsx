@@ -95,10 +95,11 @@ export default function AIReportsPage() {
         toast.error(data.error ?? "Failed to generate report.");
         return;
       }
-      setStatusText("Report generated successfully.");
+      setStatusText("Report generated successfully. Downloading PDF...");
       toast.success("AI report generated.");
       await loadReports();
       setSelectedId(data.report.id);
+      window.open(`/api/reports/${data.report.id}?format=pdf`, "_blank");
     } finally {
       setIsGenerating(false);
     }
