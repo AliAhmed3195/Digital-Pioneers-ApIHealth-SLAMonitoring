@@ -16,13 +16,24 @@ const state: SimulationState = {
 
 const stateDir = path.join(process.cwd(), ".runtime");
 const stateFilePath = path.join(stateDir, "simulation-state.json");
+const canPersistToFs = process.env.VERCEL !== "1";
 
 async function persistState(): Promise<void> {
-  await mkdir(stateDir, { recursive: true });
-  await writeFile(stateFilePath, JSON.stringify(state), "utf-8");
+  if (!canPersistToFs) {
+    return;
+  }
+  try {
+    await mkdir(stateDir, { recursive: true });
+    await writeFile(stateFilePath, JSON.stringify(state), "utf-8");
+  } catch {
+    // Ignore persistence failure in restricted serverless environments.
+  }
 }
 
 async function hydrateState(): Promise<void> {
+  if (!canPersistToFs) {
+    return;
+  }
   try {
     const raw = await readFile(stateFilePath, "utf-8");
     const parsed = JSON.parse(raw) as SimulationState;

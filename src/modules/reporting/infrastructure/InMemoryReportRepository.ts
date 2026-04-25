@@ -8,12 +8,16 @@ import path from "node:path";
 export class InMemoryReportRepository implements ReportRepository {
   private readonly storage = new Map<string, StoredReport>();
   private readonly storageFilePath = path.join(process.cwd(), ".runtime", "reports.json");
+  private readonly canPersistToFs = process.env.VERCEL !== "1";
 
   constructor() {
     this.hydrate();
   }
 
   private hydrate(): void {
+    if (!this.canPersistToFs) {
+      return;
+    }
     try {
       const raw = readFileSync(this.storageFilePath, "utf-8");
       const parsed = JSON.parse(raw) as StoredReport[];
@@ -26,9 +30,16 @@ export class InMemoryReportRepository implements ReportRepository {
   }
 
   private persist(): void {
-    mkdirSync(path.dirname(this.storageFilePath), { recursive: true });
-    const payload = JSON.stringify([...this.storage.values()], null, 2);
-    writeFileSync(this.storageFilePath, payload, "utf-8");
+    if (!this.canPersistToFs) {
+      return;
+    }
+    try {
+      mkdirSync(path.dirname(this.storageFilePath), { recursive: true });
+      const payload = JSON.stringify([...this.storage.values()], null, 2);
+      writeFileSync(this.storageFilePath, payload, "utf-8");
+    } catch {
+      // Ignore persistence failure in restricted serverless environments.
+    }
   }
 
   async save(report: StoredReport): Promise<void> {

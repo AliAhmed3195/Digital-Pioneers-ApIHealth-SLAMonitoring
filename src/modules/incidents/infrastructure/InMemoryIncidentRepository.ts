@@ -8,12 +8,16 @@ import path from "node:path";
 export class InMemoryIncidentRepository implements IncidentRepository {
   private readonly storage = new Map<string, Incident>();
   private readonly storageFilePath = path.join(process.cwd(), ".runtime", "incidents.json");
+  private readonly canPersistToFs = process.env.VERCEL !== "1";
 
   constructor() {
     this.hydrate();
   }
 
   private hydrate(): void {
+    if (!this.canPersistToFs) {
+      return;
+    }
     try {
       const raw = readFileSync(this.storageFilePath, "utf-8");
       const parsed = JSON.parse(raw) as Incident[];
@@ -26,9 +30,16 @@ export class InMemoryIncidentRepository implements IncidentRepository {
   }
 
   private persist(): void {
-    mkdirSync(path.dirname(this.storageFilePath), { recursive: true });
-    const payload = JSON.stringify([...this.storage.values()], null, 2);
-    writeFileSync(this.storageFilePath, payload, "utf-8");
+    if (!this.canPersistToFs) {
+      return;
+    }
+    try {
+      mkdirSync(path.dirname(this.storageFilePath), { recursive: true });
+      const payload = JSON.stringify([...this.storage.values()], null, 2);
+      writeFileSync(this.storageFilePath, payload, "utf-8");
+    } catch {
+      // Ignore persistence failure in restricted serverless environments.
+    }
   }
 
   async save(incident: Incident): Promise<void> {

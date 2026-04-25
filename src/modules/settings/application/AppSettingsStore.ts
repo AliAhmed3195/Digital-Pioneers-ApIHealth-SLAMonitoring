@@ -42,13 +42,24 @@ export const defaultAppSettings: AppSettings = {
 const settings: AppSettings = structuredClone(defaultAppSettings);
 const stateDir = path.join(process.cwd(), ".runtime");
 const settingsFilePath = path.join(stateDir, "app-settings.json");
+const canPersistToFs = process.env.VERCEL !== "1";
 
 function persistSettings(): void {
-  mkdirSync(stateDir, { recursive: true });
-  writeFileSync(settingsFilePath, JSON.stringify(settings, null, 2), "utf-8");
+  if (!canPersistToFs) {
+    return;
+  }
+  try {
+    mkdirSync(stateDir, { recursive: true });
+    writeFileSync(settingsFilePath, JSON.stringify(settings, null, 2), "utf-8");
+  } catch {
+    // Ignore persistence failure in restricted serverless environments.
+  }
 }
 
 function hydrateSettings(): void {
+  if (!canPersistToFs) {
+    return;
+  }
   if (!existsSync(settingsFilePath)) {
     persistSettings();
     return;

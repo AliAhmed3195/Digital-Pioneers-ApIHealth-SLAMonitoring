@@ -18,6 +18,15 @@ type ParsedFilters = {
 };
 
 type StatusFilter = "all" | "2xx" | "4xx" | "5xx";
+const MAX_UPLOAD_SIZE_BYTES = 4 * 1024 * 1024;
+
+function isHostedDeployment(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  const host = window.location.hostname.toLowerCase();
+  return host !== "localhost" && host !== "127.0.0.1";
+}
 
 function inferChannel(endpoint: string): string {
   const segment = endpoint.split("/").filter(Boolean)[0];
@@ -85,6 +94,13 @@ export default function LogsPage() {
   }
 
   async function uploadLogFile(file: File) {
+    if (isHostedDeployment() && file.size > MAX_UPLOAD_SIZE_BYTES) {
+      const maxMb = (MAX_UPLOAD_SIZE_BYTES / (1024 * 1024)).toFixed(0);
+      const message = `Upload blocked: file exceeds ${maxMb}MB. This limit is applied for Vercel-hosted deployment constraints.`;
+      setUploadStatus(message);
+      toast.error(message);
+      return;
+    }
     setIsUploading(true);
     setUploadStatus("Uploading and validating logs...");
 
@@ -247,6 +263,9 @@ export default function LogsPage() {
         </div>
         <p className="muted">
           Currently accepted: plain text files (`.txt`) and log files (`.log`).
+        </p>
+        <p className="muted">
+          Note: on Vercel-hosted deployment, large file uploads are platform-limited.
         </p>
         {isUploading ? <InlineSpinner label="Uploading and parsing logs. Please wait..." /> : null}
         {uploadStatus ? <p className="muted">{uploadStatus}</p> : null}
