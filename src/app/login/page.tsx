@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LockKeyhole, Rocket, ShieldCheck } from "lucide-react";
 import { useToast } from "@/shared/ui/ToastProvider";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const toast = useToast();
@@ -130,5 +130,13 @@ export default function LoginPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<main className="login-page" />}>
+      <LoginPageContent />
+    </Suspense>
   );
 }
