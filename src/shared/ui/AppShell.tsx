@@ -123,7 +123,7 @@ export function AppShell({ children }: AppShellProps) {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand-wrap">
-          <div className="brand-dot" />
+          <img className="brand-logo" src="/icon.svg" alt="Digital Pioneer Logo" />
           <h2 className="brand">Digital Pioneer</h2>
         </div>
         <p className="sidebar-subtitle">SLA Intelligence Console</p>

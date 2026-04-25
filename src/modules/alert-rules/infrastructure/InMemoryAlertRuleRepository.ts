@@ -26,6 +26,14 @@ export class InMemoryAlertRuleRepository implements AlertRuleRepository {
   async save(rule: AlertRule): Promise<void> {
     this.storage.set(rule.id, rule);
   }
+
+  async getById(id: string): Promise<AlertRule | null> {
+    return this.storage.get(id) ?? null;
+  }
+
+  async delete(id: string): Promise<boolean> {
+    return this.storage.delete(id);
+  }
 }
 
 export const alertRuleRepository = new InMemoryAlertRuleRepository();

@@ -6,7 +6,9 @@ type CreateRulePayload = {
   endpoint?: string;
   maxP95LatencyMs?: number;
   maxErrorRate?: number;
+  cooldownMinutes?: number;
   severity?: "LOW" | "MEDIUM" | "HIGH";
+  enabled?: boolean;
 };
 
 function createRuleId(): string {
@@ -20,24 +22,40 @@ export async function GET(): Promise<Response> {
 
 export async function POST(request: Request): Promise<Response> {
   const payload = (await request.json()) as CreateRulePayload;
-  if (
-    !payload.name ||
-    !payload.endpoint ||
-    typeof payload.maxP95LatencyMs !== "number" ||
-    typeof payload.maxErrorRate !== "number"
-  ) {
-    return Response.json({ error: "Missing required fields." }, { status: 400 });
+  if (!payload.name || !payload.endpoint) {
+    return Response.json({ error: "Name and endpoint are required." }, { status: 400 });
+  }
+
+  if (typeof payload.maxP95LatencyMs !== "number" || Number.isNaN(payload.maxP95LatencyMs)) {
+    return Response.json({ error: "maxP95LatencyMs must be a number." }, { status: 400 });
+  }
+
+  if (typeof payload.maxErrorRate !== "number" || Number.isNaN(payload.maxErrorRate)) {
+    return Response.json({ error: "maxErrorRate must be a number." }, { status: 400 });
+  }
+
+  const cooldownMinutes = payload.cooldownMinutes ?? 5;
+  if (!Number.isInteger(cooldownMinutes) || cooldownMinutes < 1 || cooldownMinutes > 1440) {
+    return Response.json({ error: "cooldownMinutes must be an integer between 1 and 1440." }, { status: 400 });
+  }
+
+  if (payload.maxP95LatencyMs < 1 || payload.maxP95LatencyMs > 60000) {
+    return Response.json({ error: "maxP95LatencyMs must be between 1 and 60000." }, { status: 400 });
+  }
+
+  if (payload.maxErrorRate < 0 || payload.maxErrorRate > 100) {
+    return Response.json({ error: "maxErrorRate must be between 0 and 100." }, { status: 400 });
   }
 
   const rule: AlertRule = {
     id: createRuleId(),
-    name: payload.name,
-    endpoint: payload.endpoint,
+    name: payload.name.trim(),
+    endpoint: payload.endpoint.trim(),
     maxP95LatencyMs: payload.maxP95LatencyMs,
     maxErrorRate: payload.maxErrorRate,
-    cooldownMinutes: 5,
+    cooldownMinutes,
     severity: payload.severity ?? "MEDIUM",
-    enabled: true
+    enabled: payload.enabled ?? true
   };
 
   await alertRuleRepository.save(rule);

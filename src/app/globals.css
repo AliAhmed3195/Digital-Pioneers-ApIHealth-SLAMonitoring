@@ -79,6 +79,14 @@ a {
   background: linear-gradient(135deg, var(--brand), var(--brand-2));
 }
 
+.brand-logo {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: 1px solid #d7e5d6;
+  background: #fff;
+}
+
 .brand {
   margin: 0;
   color: var(--brand);
