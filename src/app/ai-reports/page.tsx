@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { InlineSpinner, useToast } from "@/shared/ui/ToastProvider";
+import { PaginationControls } from "@/shared/ui/PaginationControls";
 
 type ReportRow = {
   id: string;
@@ -43,6 +44,8 @@ export default function AIReportsPage() {
   const [endpointFilter, setEndpointFilter] = useState("ALL");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   async function loadReports() {
     setLoading(true);
@@ -137,6 +140,21 @@ export default function AIReportsPage() {
       return true;
     });
   }, [reports, searchTerm, sourceFilter, endpointFilter, fromDate, toDate]);
+  const totalPages = Math.max(1, Math.ceil(filteredReports.length / pageSize));
+  const paginatedReports = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredReports.slice(start, start + pageSize);
+  }, [filteredReports, page, pageSize]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, sourceFilter, endpointFilter, fromDate, toDate, pageSize]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   const selected =
     filteredReports.find((item) => item.id === selectedId) ??
@@ -228,40 +246,49 @@ export default function AIReportsPage() {
         ) : filteredReports.length === 0 ? (
           <p className="muted">No reports match active filters. Adjust filters and try again.</p>
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Endpoint</th>
-                  <th>Source</th>
-                  <th>Created</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredReports.map((report) => (
-                  <tr key={report.id}>
-                    <td>{report.title}</td>
-                    <td>
-                      <span className="chip-soft chip-purple">{report.endpoint}</span>
-                    </td>
-                    <td>
-                      <span className={`chip-soft ${report.source === "LLM" ? "chip-green-soft" : "chip-gray-soft"}`}>
-                        {report.source}
-                      </span>
-                    </td>
-                    <td>{new Date(report.createdAt).toLocaleString()}</td>
-                    <td>
-                      <button className="btn" onClick={() => setSelectedId(report.id)}>
-                        Preview
-                      </button>
-                    </td>
+          <>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Endpoint</th>
+                    <th>Source</th>
+                    <th>Created</th>
+                    <th>Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedReports.map((report) => (
+                    <tr key={report.id}>
+                      <td>{report.title}</td>
+                      <td>
+                        <span className="chip-soft chip-purple">{report.endpoint}</span>
+                      </td>
+                      <td>
+                        <span className={`chip-soft ${report.source === "LLM" ? "chip-green-soft" : "chip-gray-soft"}`}>
+                          {report.source}
+                        </span>
+                      </td>
+                      <td>{new Date(report.createdAt).toLocaleString()}</td>
+                      <td>
+                        <button className="btn" onClick={() => setSelectedId(report.id)}>
+                          Preview
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <PaginationControls
+              totalItems={filteredReports.length}
+              page={page}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
+          </>
         )}
       </section>
 
@@ -274,6 +301,9 @@ export default function AIReportsPage() {
             </span>
             <a className="btn" href={`/api/reports/${selected.id}?format=md`}>
               Download Markdown
+            </a>
+            <a className="btn btn-secondary" href={`/api/reports/${selected.id}?format=pdf`}>
+              Download PDF
             </a>
           </div>
           <pre className="report-preview">{selected.markdown}</pre>

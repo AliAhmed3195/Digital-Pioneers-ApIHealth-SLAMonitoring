@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { StatusChip } from "@/shared/ui/StatusChip";
+import { PaginationControls } from "@/shared/ui/PaginationControls";
 import type { RiskLevel } from "@/shared/contracts/core";
 
 type EndpointsResponse = {
@@ -46,6 +47,8 @@ export default function EndpointsPage() {
   const [channelFilter, setChannelFilter] = useState("ALL");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   async function loadEndpoints() {
     setLoading(true);
@@ -88,6 +91,21 @@ export default function EndpointsPage() {
       return true;
     });
   }, [rows, searchTerm, typeFilter, riskFilter, channelFilter, fromDate, toDate]);
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  const paginatedRows = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredRows.slice(start, start + pageSize);
+  }, [filteredRows, page, pageSize]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, typeFilter, riskFilter, channelFilter, fromDate, toDate, pageSize]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   const typeOptions = useMemo(
     () => Array.from(new Set(rows.map((row) => inferType(row.endpoint)))).sort((a, b) => a.localeCompare(b)),
@@ -165,40 +183,49 @@ export default function EndpointsPage() {
         ) : filteredRows.length === 0 ? (
           <p className="muted">No endpoints match active filters.</p>
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Endpoint</th>
-                  <th>Requests</th>
-                  <th>Error %</th>
-                  <th>p95 (ms)</th>
-                  <th>Risk</th>
-                  <th>Details</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRows.map((row) => (
-                  <tr key={row.endpoint}>
-                    <td>
-                      <span className="chip-soft chip-blue">{row.endpoint}</span>
-                    </td>
-                    <td>{row.metrics.requestCount}</td>
-                    <td>{row.metrics.errorRate}</td>
-                    <td>{row.metrics.p95LatencyMs}</td>
-                    <td>
-                      <StatusChip level={row.assessment.level} />
-                    </td>
-                    <td>
-                      <Link className="btn btn-ghost" href={`/endpoints/${encodeURIComponent(row.endpoint)}`}>
-                        Open
-                      </Link>
-                    </td>
+          <>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Endpoint</th>
+                    <th>Requests</th>
+                    <th>Error %</th>
+                    <th>p95 (ms)</th>
+                    <th>Risk</th>
+                    <th>Details</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedRows.map((row) => (
+                    <tr key={row.endpoint}>
+                      <td>
+                        <span className="chip-soft chip-blue">{row.endpoint}</span>
+                      </td>
+                      <td>{row.metrics.requestCount}</td>
+                      <td>{row.metrics.errorRate}</td>
+                      <td>{row.metrics.p95LatencyMs}</td>
+                      <td>
+                        <StatusChip level={row.assessment.level} />
+                      </td>
+                      <td>
+                        <Link className="btn btn-ghost" href={`/endpoints/${encodeURIComponent(row.endpoint)}`}>
+                          Open
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <PaginationControls
+              totalItems={filteredRows.length}
+              page={page}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
+          </>
         )}
       </section>
     </main>

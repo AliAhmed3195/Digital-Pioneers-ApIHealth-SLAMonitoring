@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { StatusChip } from "@/shared/ui/StatusChip";
+import { PaginationControls } from "@/shared/ui/PaginationControls";
 import type { RiskLevel } from "@/shared/contracts/core";
 
 type IncidentsResponse = {
@@ -53,6 +54,8 @@ export default function IncidentsPage() {
   const [channelFilter, setChannelFilter] = useState("ALL");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   async function loadIncidents() {
     setLoading(true);
@@ -96,6 +99,21 @@ export default function IncidentsPage() {
       return true;
     });
   }, [rows, searchTerm, statusFilter, riskFilter, typeFilter, channelFilter, fromDate, toDate]);
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  const paginatedRows = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredRows.slice(start, start + pageSize);
+  }, [filteredRows, page, pageSize]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, typeFilter, statusFilter, riskFilter, channelFilter, fromDate, toDate, pageSize]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   const typeOptions = useMemo(
     () => Array.from(new Set(rows.map((row) => inferType(row.endpoint)))).sort((a, b) => a.localeCompare(b)),
@@ -184,44 +202,53 @@ export default function IncidentsPage() {
         ) : filteredRows.length === 0 ? (
           <p className="muted">No incidents match active filters.</p>
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Endpoint</th>
-                  <th>Risk</th>
-                  <th>Score</th>
-                  <th>Status</th>
-                  <th>Updated</th>
-                  <th>Details</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRows.map((row) => (
-                  <tr key={row.id}>
-                    <td>{row.title}</td>
-                    <td>
-                      <span className="chip-soft chip-purple">{row.endpoint}</span>
-                    </td>
-                    <td>
-                      <StatusChip level={row.riskLevel} />
-                    </td>
-                    <td>{row.riskScore}</td>
-                    <td>
-                      <span className={`chip-soft ${statusClass(row.status)}`}>{row.status}</span>
-                    </td>
-                    <td>{new Date(row.updatedAt).toLocaleString()}</td>
-                    <td>
-                      <Link className="btn btn-ghost" href={`/incidents/${row.id}`}>
-                        Open
-                      </Link>
-                    </td>
+          <>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Endpoint</th>
+                    <th>Risk</th>
+                    <th>Score</th>
+                    <th>Status</th>
+                    <th>Updated</th>
+                    <th>Details</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedRows.map((row) => (
+                    <tr key={row.id}>
+                      <td>{row.title}</td>
+                      <td>
+                        <span className="chip-soft chip-purple">{row.endpoint}</span>
+                      </td>
+                      <td>
+                        <StatusChip level={row.riskLevel} />
+                      </td>
+                      <td>{row.riskScore}</td>
+                      <td>
+                        <span className={`chip-soft ${statusClass(row.status)}`}>{row.status}</span>
+                      </td>
+                      <td>{new Date(row.updatedAt).toLocaleString()}</td>
+                      <td>
+                        <Link className="btn btn-ghost" href={`/incidents/${row.id}`}>
+                          Open
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <PaginationControls
+              totalItems={filteredRows.length}
+              page={page}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
+          </>
         )}
       </section>
     </main>

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { InlineSpinner, useToast } from "@/shared/ui/ToastProvider";
+import { PaginationControls } from "@/shared/ui/PaginationControls";
 
 type ReportRow = {
   id: string;
@@ -26,6 +27,8 @@ export default function ExportsPage() {
   const [selectedId, setSelectedId] = useState("");
   const [statusText, setStatusText] = useState("");
   const [selectedMarkdown, setSelectedMarkdown] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   async function loadReports() {
     setLoading(true);
@@ -76,6 +79,21 @@ export default function ExportsPage() {
       return true;
     });
   }, [reports, searchTerm, sourceFilter, endpointFilter, fromDate, toDate]);
+  const totalPages = Math.max(1, Math.ceil(filteredReports.length / pageSize));
+  const paginatedReports = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredReports.slice(start, start + pageSize);
+  }, [filteredReports, page, pageSize]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, sourceFilter, endpointFilter, fromDate, toDate, pageSize]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   const selectedReport =
     reports.find((report) => report.id === selectedId) ??
@@ -183,46 +201,61 @@ export default function ExportsPage() {
         ) : filteredReports.length === 0 ? (
           <p className="muted">No exports match active filters.</p>
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Endpoint</th>
-                  <th>Source</th>
-                  <th>Created</th>
-                  <th>Download</th>
-                  <th>Preview</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredReports.map((report) => (
-                  <tr key={report.id}>
-                    <td>{report.title}</td>
-                    <td>
-                      <span className="chip-soft chip-purple">{report.endpoint}</span>
-                    </td>
-                    <td>
-                      <span className={`chip-soft ${report.source === "LLM" ? "chip-green-soft" : "chip-gray-soft"}`}>
-                        {report.source}
-                      </span>
-                    </td>
-                    <td>{new Date(report.createdAt).toLocaleString()}</td>
-                    <td>
-                      <a className="btn" href={`/api/reports/${report.id}?format=md`}>
-                        Download .md
-                      </a>
-                    </td>
-                    <td>
-                      <button className="btn btn-secondary" onClick={() => setSelectedId(report.id)}>
-                        Open
-                      </button>
-                    </td>
+          <>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Endpoint</th>
+                    <th>Source</th>
+                    <th>Created</th>
+                    <th>Download</th>
+                    <th>PDF</th>
+                    <th>Preview</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedReports.map((report) => (
+                    <tr key={report.id}>
+                      <td>{report.title}</td>
+                      <td>
+                        <span className="chip-soft chip-purple">{report.endpoint}</span>
+                      </td>
+                      <td>
+                        <span className={`chip-soft ${report.source === "LLM" ? "chip-green-soft" : "chip-gray-soft"}`}>
+                          {report.source}
+                        </span>
+                      </td>
+                      <td>{new Date(report.createdAt).toLocaleString()}</td>
+                      <td>
+                        <a className="btn" href={`/api/reports/${report.id}?format=md`}>
+                          Download .md
+                        </a>
+                      </td>
+                      <td>
+                        <a className="btn btn-secondary" href={`/api/reports/${report.id}?format=pdf`}>
+                          Download PDF
+                        </a>
+                      </td>
+                      <td>
+                        <button className="btn btn-secondary" onClick={() => setSelectedId(report.id)}>
+                          Open
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <PaginationControls
+              totalItems={filteredReports.length}
+              page={page}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
+          </>
         )}
       </section>
 
@@ -232,6 +265,9 @@ export default function ExportsPage() {
             <h3 className="section-title">{selectedReport.title}</h3>
             <a className="btn" href={`/api/reports/${selectedReport.id}?format=md`}>
               Download Markdown
+            </a>
+            <a className="btn btn-secondary" href={`/api/reports/${selectedReport.id}?format=pdf`}>
+              Download PDF
             </a>
             <a className="btn btn-secondary" href={`/api/reports/${selectedReport.id}`} target="_blank" rel="noreferrer">
               Open JSON

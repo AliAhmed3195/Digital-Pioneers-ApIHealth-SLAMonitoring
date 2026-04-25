@@ -98,12 +98,21 @@ type MonitorLatestResponse = {
   };
 };
 
+type SlaSettingsResponse = {
+  settings: {
+    slaThresholds: {
+      targetP95LatencyMs: number;
+    };
+  };
+};
+
 export default function DashboardPage() {
   const toast = useToast();
   const [overview, setOverview] = useState<OverviewResponse | null>(null);
   const [endpoints, setEndpoints] = useState<EndpointsResponse["endpoints"]>([]);
   const [monitorLatest, setMonitorLatest] = useState<MonitorLatestResponse["latest"]>(null);
   const [monitorConfig, setMonitorConfig] = useState<MonitorLatestResponse["config"] | null>(null);
+  const [latencyTargetMs, setLatencyTargetMs] = useState(700);
   const [isRunningMonitor, setIsRunningMonitor] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -112,18 +121,21 @@ export default function DashboardPage() {
   }, []);
 
   async function loadDashboardData(): Promise<void> {
-    const [overviewRes, endpointsRes, monitorRes] = await Promise.all([
+    const [overviewRes, endpointsRes, monitorRes, slaRes] = await Promise.all([
       fetch("/api/health/overview", { cache: "no-store" }),
       fetch("/api/endpoints", { cache: "no-store" }),
-      fetch("/api/monitor", { cache: "no-store" })
+      fetch("/api/monitor", { cache: "no-store" }),
+      fetch("/api/sla-settings", { cache: "no-store" })
     ]);
     const overviewData = (await overviewRes.json()) as OverviewResponse;
     const endpointsData = (await endpointsRes.json()) as EndpointsResponse;
     const monitorData = (await monitorRes.json()) as MonitorLatestResponse;
+    const slaData = (await slaRes.json()) as SlaSettingsResponse;
     setOverview(overviewData);
     setEndpoints(endpointsData.endpoints);
     setMonitorLatest(monitorData.latest);
     setMonitorConfig(monitorData.config ?? null);
+    setLatencyTargetMs(slaData.settings.slaThresholds.targetP95LatencyMs);
   }
 
   useEffect(() => {
@@ -179,7 +191,6 @@ export default function DashboardPage() {
     RED: "#ef4444"
   };
 
-  const latencyTargetMs = 700;
   const latencyChartData = endpoints.map((item) => ({
     endpoint: item.endpoint,
     p95LatencyMs: item.metrics.p95LatencyMs,

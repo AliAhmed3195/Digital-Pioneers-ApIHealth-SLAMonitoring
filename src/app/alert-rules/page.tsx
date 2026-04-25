@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { InlineSpinner, useToast } from "@/shared/ui/ToastProvider";
+import { PaginationControls } from "@/shared/ui/PaginationControls";
 
 type AlertRule = {
   id: string;
@@ -19,6 +20,8 @@ export default function AlertRulesPage() {
   const [name, setName] = useState("Custom latency rule");
   const [endpoint, setEndpoint] = useState("/payments");
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   async function loadRules() {
     setLoading(true);
@@ -51,6 +54,18 @@ export default function AlertRulesPage() {
     }
     await loadRules();
   }
+  const totalPages = Math.max(1, Math.ceil(rules.length / pageSize));
+  const paginatedRules = rules.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [pageSize]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   return (
     <main className="page">
@@ -90,7 +105,7 @@ export default function AlertRulesPage() {
             </tr>
           </thead>
           <tbody>
-            {rules.map((rule) => (
+            {paginatedRules.map((rule) => (
               <tr key={rule.id}>
                 <td>{rule.name}</td>
                 <td>
@@ -120,6 +135,13 @@ export default function AlertRulesPage() {
             ))}
           </tbody>
         </table>
+        <PaginationControls
+          totalItems={rules.length}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       </section>
     </main>
   );

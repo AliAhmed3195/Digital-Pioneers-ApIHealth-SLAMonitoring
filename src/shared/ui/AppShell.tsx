@@ -9,6 +9,7 @@ import {
   FileOutput,
   Gauge,
   LayoutDashboard,
+  LogOut,
   ScrollText,
   ShieldCheck,
   SlidersHorizontal,
@@ -197,12 +198,16 @@ export function AppShell({ children }: AppShellProps) {
             <Link className="btn btn-primary" href="/ai-reports">
               Generate Report
             </Link>
-            <button className="btn" onClick={() => void logout()}>
+            <button className="btn button-with-icon" onClick={() => void logout()}>
+              <LogOut size={14} />
               Logout
             </button>
           </div>
         </header>
         {children}
+        <footer className="app-footer">
+          <p>Powered by Digital Pioneer</p>
+        </footer>
       </section>
     </div>
   );

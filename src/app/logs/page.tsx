@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { InlineSpinner, useToast } from "@/shared/ui/ToastProvider";
+import { PaginationControls } from "@/shared/ui/PaginationControls";
 
 type LogRecord = {
   timestamp: string;
@@ -47,6 +48,8 @@ export default function LogsPage() {
     statusClass: "all",
     endpoint: null
   });
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   async function loadLogs() {
     const res = await fetch("/api/logs", { cache: "no-store" });
@@ -172,6 +175,21 @@ export default function LogsPage() {
       return true;
     });
   }, [logs, filters, searchTerm, typeFilter, statusFilter, channelFilter, fromDate, toDate]);
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / pageSize));
+  const paginatedLogs = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredLogs.slice(start, start + pageSize);
+  }, [filteredLogs, page, pageSize]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, typeFilter, statusFilter, channelFilter, fromDate, toDate, filters, pageSize]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   const typeOptions = useMemo(
     () => Array.from(new Set(logs.map((log) => inferType(log.endpoint)))).sort((a, b) => a.localeCompare(b)),
@@ -299,7 +317,7 @@ export default function LogsPage() {
             </tr>
           </thead>
           <tbody>
-            {filteredLogs.slice(0, 200).map((log, index) => (
+            {paginatedLogs.map((log, index) => (
               <tr key={`${log.timestamp}-${log.endpoint}-${log.status}-${log.requestId ?? index}`}>
                 <td>{new Date(log.timestamp).toLocaleString()}</td>
                 <td>{log.endpoint}</td>
@@ -310,6 +328,13 @@ export default function LogsPage() {
           </tbody>
         </table>
       </section>
+      <PaginationControls
+        totalItems={filteredLogs.length}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
     </main>
   );
 }
